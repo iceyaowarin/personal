@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PersonaScan AI - ระบบวิเคราะห์บุคลิกภาพและภาษากายเรียลไทม์</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- MediaPipe Pose Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #05070f;
+            color: #f8fafc;
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #38bdf8, #818cf8, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glassmorphism {
+            background: rgba(10, 15, 30, 0.85);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .video-container {
+            position: relative;
+            aspect-ratio: 4 / 3;
+            overflow: hidden;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+        }
+        .glow-indigo {
+            box-shadow: 0 0 20px 2px rgba(99, 102, 241, 0.25);
+        }
+        /* Custom Likert Scale Buttons */
+        .likert-radio:checked + label.pre-label {
+            background-color: #6366f1; /* Indigo */
+            color: white;
+            border-color: #818cf8;
+            transform: scale(1.05);
+        }
+        .likert-radio:checked + label.post-label {
+            background-color: #d97706; /* Amber */
+            color: white;
+            border-color: #fbbf24;
+            transform: scale(1.05);
+        }
+        .animate-subtle-pulse { animation: subtle-pulse 2s infinite ease-in-out; }
+        @keyframes subtle-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(1.02); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- HEADER -->
+    <header class="border-b border-slate-900/90 glassmorphism sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-indigo-600 via-violet-600 to-pink-600 p-2 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-1.5">
+                        <span class="font-black text-sm md:text-base tracking-wider text-white">PersonaScan AI</span>
+                    </div>
+                    <span class="block text-[9px] text-pink-400 font-bold tracking-widest uppercase">ระบบวิเคราะห์บุคลิกภาพและภาษากายเรียลไทม์</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4 text-xs text-slate-400">
+                <span class="hidden md:inline-block px-3 py-1 bg-slate-900/85 rounded-full border border-slate-800 text-indigo-300 font-semibold uppercase">
+                    <i data-lucide="graduation-cap" class="w-3.5 h-3.5 inline-block mr-1"></i> INNOVATION OF PSYCHOLOGY
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN BODY -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- ==================== SCREEN 0: USER IDENTIFICATION ==================== -->
+        <section id="loginScreen" class="space-y-8 animate-fade-in flex flex-col items-center justify-center min-h-[60vh]">
+            <div class="glassmorphism p-8 rounded-3xl border border-indigo-500/20 max-w-md w-full text-center space-y-6 glow-indigo">
+                <div class="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto text-indigo-400">
+                    <i data-lucide="user-circle" class="w-10 h-10"></i>
+                </div>
+                <div class="space-y-2">
+                    <h2 class="text-2xl font-black text-slate-100">ยินดีต้อนรับสู่ PersonaScan AI</h2>
+                    <p class="text-xs text-slate-400">กรุณาระบุชื่อของท่านเพื่อใช้ในการบันทึกผลการประเมิน</p>
+                </div>
+                <div class="space-y-4">
+                    <input type="text" id="userNickname" placeholder="กรอกชื่อเล่น หรือ นามแฝง..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-center font-semibold">
+                    <button onclick="submitLogin()" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 rounded-xl font-bold text-white shadow-lg shadow-indigo-600/20 transition">
+                        เข้าสู่ระบบและเริ่มทำแบบประเมิน
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 1: PRE-ASSESSMENT ==================== -->
+        <section id="preTestScreen" class="hidden space-y-8 animate-fade-in max-w-4xl mx-auto">
+            <div class="text-center space-y-2">
+                <span class="text-[10px] bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full font-bold uppercase tracking-widest">ขั้นตอนที่ 1 / 4</span>
+                <h2 class="text-2xl md:text-3xl font-black text-slate-100">แบบประเมินความมั่นใจก่อนใช้ (Pre-Assessment)</h2>
+                <p class="text-sm text-slate-400">วัดระดับความมั่นใจของคุณอย่างตรงไปตรงมาก่อนการใช้งานแอปพลิเคชัน<br>(1 = น้อยที่สุด, 2 = น้อย, 3 = ปานกลาง, 4 = มาก, 5 = มากที่สุด)</p>
+            </div>
+
+            <div class="glassmorphism p-6 rounded-2xl border border-slate-800 space-y-8 text-sm">
+                
+                <!-- Q1 -->
+                <div class="space-y-4">
+                    <p class="font-semibold text-slate-200">1. ระดับความมั่นใจของคุณ ในการยืนพูดพรีเซนต์งานหน้าห้องโดยไม่ตื่นเต้นจนเกินไป</p>
+                    <div class="flex justify-between gap-2 max-w-2xl mx-auto">
+                        <div class="flex-1"><input type="radio" name="pre_q1" id="pre_q1_1" value="1" class="hidden likert-radio"><label for="pre_q1_1" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">1</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q1" id="pre_q1_2" value="2" class="hidden likert-radio"><label for="pre_q1_2" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">2</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q1" id="pre_q1_3" value="3" class="hidden likert-radio"><label for="pre_q1_3" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">3</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q1" id="pre_q1_4" value="4" class="hidden likert-radio"><label for="pre_q1_4" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">4</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q1" id="pre_q1_5" value="5" class="hidden likert-radio"><label for="pre_q1_5" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">5</label></div>
+                    </div>
+                </div>
+
+                <!-- Q2 -->
+                <div class="space-y-4">
+                    <p class="font-semibold text-slate-200">2. ระดับความมั่นใจของคุณ ในการควบคุมเสียง น้ำเสียง และจังหวะการพูดไม่ให้สั่นหรือเร็วเกินไป</p>
+                    <div class="flex justify-between gap-2 max-w-2xl mx-auto">
+                        <div class="flex-1"><input type="radio" name="pre_q2" id="pre_q2_1" value="1" class="hidden likert-radio"><label for="pre_q2_1" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">1</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q2" id="pre_q2_2" value="2" class="hidden likert-radio"><label for="pre_q2_2" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">2</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q2" id="pre_q2_3" value="3" class="hidden likert-radio"><label for="pre_q2_3" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">3</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q2" id="pre_q2_4" value="4" class="hidden likert-radio"><label for="pre_q2_4" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">4</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q2" id="pre_q2_5" value="5" class="hidden likert-radio"><label for="pre_q2_5" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">5</label></div>
+                    </div>
+                </div>
+
+                <!-- Q3 -->
+                <div class="space-y-4">
+                    <p class="font-semibold text-slate-200">3. ระดับความมั่นใจของคุณ ในการสบตากับผู้ฟังหรือกวาดสายตามองคนดูรอบห้องอย่างเป็นธรรมชาติ</p>
+                    <div class="flex justify-between gap-2 max-w-2xl mx-auto">
+                        <div class="flex-1"><input type="radio" name="pre_q3" id="pre_q3_1" value="1" class="hidden likert-radio"><label for="pre_q3_1" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">1</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q3" id="pre_q3_2" value="2" class="hidden likert-radio"><label for="pre_q3_2" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">2</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q3" id="pre_q3_3" value="3" class="hidden likert-radio"><label for="pre_q3_3" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">3</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q3" id="pre_q3_4" value="4" class="hidden likert-radio"><label for="pre_q3_4" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">4</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q3" id="pre_q3_5" value="5" class="hidden likert-radio"><label for="pre_q3_5" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">5</label></div>
+                    </div>
+                </div>
+
+                <!-- Q4 -->
+                <div class="space-y-4">
+                    <p class="font-semibold text-slate-200">4. ระดับความมั่นใจของคุณ ในการรับมือกับสถานการณ์เฉพาะหน้า (เช่น ลืมบท หรือมีคำถามยากๆ จากผู้ฟัง)</p>
+                    <div class="flex justify-between gap-2 max-w-2xl mx-auto">
+                        <div class="flex-1"><input type="radio" name="pre_q4" id="pre_q4_1" value="1" class="hidden likert-radio"><label for="pre_q4_1" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">1</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q4" id="pre_q4_2" value="2" class="hidden likert-radio"><label for="pre_q4_2" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">2</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q4" id="pre_q4_3" value="3" class="hidden likert-radio"><label for="pre_q4_3" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">3</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q4" id="pre_q4_4" value="4" class="hidden likert-radio"><label for="pre_q4_4" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">4</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q4" id="pre_q4_5" value="5" class="hidden likert-radio"><label for="pre_q4_5" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">5</label></div>
+                    </div>
+                </div>
+
+                <!-- Q5 -->
+                <div class="space-y-4">
+                    <p class="font-semibold text-slate-200">5. ระดับความมั่นใจโดยรวมของคุณ ในการมองภาพลักษณ์ของตนเองว่าเป็น "คนที่พรีเซนต์งานได้อย่างมีประสิทธิภาพ"</p>
+                    <div class="flex justify-between gap-2 max-w-2xl mx-auto">
+                        <div class="flex-1"><input type="radio" name="pre_q5" id="pre_q5_1" value="1" class="hidden likert-radio"><label for="pre_q5_1" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">1</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q5" id="pre_q5_2" value="2" class="hidden likert-radio"><label for="pre_q5_2" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">2</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q5" id="pre_q5_3" value="3" class="hidden likert-radio"><label for="pre_q5_3" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">3</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q5" id="pre_q5_4" value="4" class="hidden likert-radio"><label for="pre_q5_4" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">4</label></div>
+                        <div class="flex-1"><input type="radio" name="pre_q5" id="pre_q5_5" value="5" class="hidden likert-radio"><label for="pre_q5_5" class="pre-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-indigo-400 font-bold transition">5</label></div>
+                    </div>
+                </div>
+
+                <!-- Expectation Input -->
+                <div class="space-y-3 pt-6 border-t border-slate-800">
+                    <p class="font-bold text-indigo-300 text-base">ความคาดหวังจากการใช้งาน</p>
+                    <p class="text-xs text-slate-400">คุณคาดหวังว่าจะได้ทักษะหรือการปรับปรุงด้านใด จากการใช้แอปพลิเคชัน PersonaScan AI ในครั้งนี้?</p>
+                    <textarea id="userExpectation" rows="3" placeholder="พิมพ์ความคาดหวังของคุณที่นี่..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-indigo-500 text-sm"></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <button onclick="submitPreTest()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-white shadow-lg shadow-indigo-600/20 transition mt-6 text-lg">
+                    บันทึกข้อมูลและเข้าสู่ระบบ
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 2: WELCOME (MAIN MENU) ==================== -->
+        <section id="welcomeScreen" class="hidden space-y-8 animate-fade-in">
+            <div class="text-center max-w-3xl mx-auto space-y-4 py-3">
+                <span class="text-[10px] bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full font-bold uppercase tracking-widest">ขั้นตอนที่ 2 / 4</span>
+                <h1 class="text-4xl md:text-5xl font-black tracking-tight leading-tight">
+                    <span class="gradient-text">PersonaScan AI</span>
+                </h1>
+                <p class="text-slate-400 text-sm md:text-base leading-relaxed">
+                    ฝึกทักษะการสัมภาษณ์และการนำเสนอให้มั่นใจยิ่งขึ้น ด้วยระบบ AI ตรวจจับบุคลิกภาพ อิงตามทฤษฎีจิตวิทยาสังคมและบุคลิกภาพสมัยใหม่
+                </p>
+            </div>
+
+            <div class="max-w-xl mx-auto text-center space-y-4 pt-4">
+                <h3 class="text-base font-bold text-slate-200">เลือกโหมดสถานการณ์เพื่อเปิดกล้องจำลอง</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="startAppSimulation('job_interview')" class="group p-4 rounded-xl text-left border border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 hover:border-indigo-500 transition duration-300 flex items-center justify-between">
+                        <div>
+                            <span class="block font-bold text-slate-100 group-hover:text-indigo-400 text-sm">การสัมภาษณ์งาน (Job Interview)</span>
+                            <span class="text-[10px] text-slate-400 mt-1 block">ฝึกความสง่างาม รักษาระยะสายตาและความนิ่ง</span>
+                        </div>
+                        <i data-lucide="briefcase" class="w-6 h-6 text-slate-400 group-hover:text-indigo-400"></i>
+                    </button>
+                    <button onclick="startAppSimulation('presentation')" class="group p-4 rounded-xl text-left border border-slate-800 bg-slate-900/60 hover:bg-slate-800/80 hover:border-indigo-500 transition duration-300 flex items-center justify-between">
+                        <div>
+                            <span class="block font-bold text-slate-100 group-hover:text-indigo-400 text-sm">การนำเสนอผลงาน (Pitching)</span>
+                            <span class="text-[10px] text-slate-400 mt-1 block">กระจายสายตาอย่างมีส่วนร่วมและการใช้มือ</span>
+                        </div>
+                        <i data-lucide="presentation" class="w-6 h-6 text-slate-400 group-hover:text-indigo-400"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="max-w-5xl mx-auto mt-12 border-t border-slate-800 pt-6">
+                 <p class="text-center text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">คณะผู้จัดทำโครงงาน (INNOVATION OF PSYCHOLOGY)</p>
+                 <div class="flex flex-wrap justify-center gap-3 text-[11px] text-slate-400">
+                    <span class="bg-slate-900 px-3 py-1 rounded-md border border-slate-800">น.ส. พลอยชยา เค้าอุทัย (660801402291)</span>
+                    <span class="bg-slate-900 px-3 py-1 rounded-md border border-slate-800">น.ส. เนตรธิดา นาวาเดช (660801402480)</span>
+                    <span class="bg-slate-900 px-3 py-1 rounded-md border border-slate-800">น.ส. ชลธิชา คานทอง (660801402776)</span>
+                    <span class="bg-slate-900 px-3 py-1 rounded-md border border-slate-800">น.ส. สุชัญญา เอี่ยมศิริ (660801403421)</span>
+                    <span class="bg-slate-900 px-3 py-1 rounded-md border border-slate-800">น.ส. เยาวรินทร์ เรืองยศ (660801403621)</span>
+                 </div>
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 3: SIMULATION SCREEN (REAL-TIME ANALYSIS) ==================== -->
+        <section id="simulationScreen" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/80 p-4 rounded-2xl border border-slate-800">
+                <div class="flex items-center space-x-3">
+                    <div id="statusIndicator" class="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h2 class="font-extrabold text-slate-100 text-sm md:text-base">ระบบพร้อมประมวลผล...</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 w-full md:w-auto">
+                    <button onclick="toggleInputs()" class="flex-1 md:flex-initial flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2.5 rounded-xl font-bold text-slate-200 border border-slate-700 transition">
+                        <i id="deviceIcon" data-lucide="video"></i>
+                        <span id="deviceText">เปิดกล้องวิเคราะห์</span>
+                    </button>
+                    <button onclick="evaluateSimulatorSession()" class="flex-1 md:flex-initial flex items-center justify-center space-x-2 bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-xs px-5 py-2.5 rounded-xl font-bold text-white transition shadow-lg shadow-indigo-600/15">
+                        <i data-lucide="check-square"></i>
+                        <span>สิ้นสุดการฝึกซ้อม</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Camera Feed -->
+                <div class="lg:col-span-7 space-y-4">
+                    <div class="video-container bg-slate-950 flex items-center justify-center">
+                        <video id="videoElement" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover rounded-xl" style="transform: scaleX(-1);"></video>
+                        <canvas id="canvasOverlay" class="absolute inset-0 w-full h-full object-cover z-10" style="transform: scaleX(-1);"></canvas>
+                        
+                        <!-- Real-time AI Live Feedback Banner -->
+                        <div id="realtimeTipOverlay" class="absolute top-4 inset-x-4 z-20 flex justify-center pointer-events-none transition-all duration-300 opacity-0 transform -translate-y-2">
+                            <div id="realtimeTipBox" class="bg-slate-900/90 backdrop-blur-md border border-amber-500/60 text-amber-300 text-xs md:text-sm font-bold px-4 py-2 rounded-full shadow-2xl flex items-center space-x-2.5">
+                                <span class="relative flex h-3 w-3">
+                                    <span id="realtimeTipPing" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                    <span id="realtimeTipDot" class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                                </span>
+                                <span id="realtimeTipText">AI กำลังวิเคราะห์ภาษากายของคุณ...</span>
+                            </div>
+                        </div>
+
+                        <div id="hardwarePlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-center p-6 z-30">
+                            <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center text-indigo-400 mb-4 animate-subtle-pulse glow-indigo">
+                                <i data-lucide="video" class="w-7 h-7"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-300">เริ่มการตรวจวัดสัญญาณ</h4>
+                            <p class="text-xs text-slate-500 mt-1.5">กรุณาเปิดสิทธิ์กล้องเพื่อประมวลผลภาษากาย</p>
+                        </div>
+                    </div>
+                    <!-- Question Prompt -->
+                    <div class="glassmorphism p-4 rounded-xl border border-indigo-500/10 text-center">
+                        <p class="font-semibold text-slate-200 text-sm md:text-base py-1">"จงแนะนำตัวให้ดูน่าเชื่อถือและมั่นใจที่สุด ในเวลา 1 นาที?"</p>
+                    </div>
+                </div>
+
+                <!-- Live Metrics -->
+                <div class="lg:col-span-5 flex flex-col justify-between space-y-4">
+                    <div class="glassmorphism p-5 rounded-2xl border border-slate-800 space-y-5 flex-grow">
+                        <div class="space-y-2 bg-slate-800/40 p-4 rounded-xl border border-slate-700/30">
+                            <div class="flex justify-between items-baseline">
+                                <span class="text-xs font-bold text-indigo-300 uppercase">คะแนนบุคลิกภาพเรียลไทม์</span>
+                                <span id="currentConfidencePercent" class="text-3xl font-black text-indigo-400">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                                <div id="currentConfidenceBar" class="bg-gradient-to-r from-pink-500 via-indigo-500 to-sky-400 h-full rounded-full transition-all duration-300" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-6 pt-2">
+                            <!-- Eye -->
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between text-xs font-bold"><span class="text-sky-400">1. การสบตา (Eye Contact)</span><span id="metricGazeVal" class="text-sky-400">0%</span></div>
+                                <div class="w-full bg-slate-950 h-2 rounded-full"><div id="metricGazeBar" class="bg-sky-400 h-full rounded-full" style="width: 0%;"></div></div>
+                            </div>
+                            <!-- Speech -->
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between text-xs font-bold"><span class="text-pink-400">2. จังหวะพูด (Speech Flow)</span><span id="metricSpeechVal" class="text-pink-400">0%</span></div>
+                                <div class="w-full bg-slate-950 h-2 rounded-full"><div id="metricSpeechBar" class="bg-pink-400 h-full rounded-full" style="width: 0%;"></div></div>
+                            </div>
+                            <!-- Posture -->
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between text-xs font-bold"><span class="text-emerald-400">3. สรีระและการใช้มือ (Posture)</span><span id="metricPostureVal" class="text-emerald-400">0%</span></div>
+                                <div class="w-full bg-slate-950 h-2 rounded-full"><div id="metricPostureBar" class="bg-emerald-400 h-full rounded-full" style="width: 0%;"></div></div>
+                            </div>
+                        </div>
+
+                        <!-- Real-Time AI Suggestion Feed -->
+                        <div class="mt-4 bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl flex items-start space-x-3">
+                            <div id="sideAdviceIconBg" class="p-2 bg-amber-500/10 text-amber-400 rounded-lg shrink-0 mt-0.5">
+                                <i data-lucide="zap" class="w-4 h-4"></i>
+                            </div>
+                            <div class="space-y-0.5">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-300">ข้อแนะนำสรีระ ณ เวลานี้</span>
+                                <p id="sideRealtimeAdvice" class="text-xs text-slate-200 font-semibold leading-relaxed">กำลังเปิดระบบตรวจจับภาษาในชีวิตจริง...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 4: SIMULATION REPORT ==================== -->
+        <section id="reportScreen" class="hidden space-y-8">
+            <div class="text-center space-y-2">
+                <span class="text-[10px] font-bold text-indigo-400 tracking-widest uppercase">ขั้นตอนที่ 3 / 4</span>
+                <h2 class="text-3xl font-black text-slate-100">รายงานผลพฤติกรรมระหว่างการฝึกซ้อม</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="md:col-span-2 glassmorphism p-6 rounded-2xl border border-indigo-500/30 flex flex-col justify-between">
+                    <span class="text-xs font-bold text-indigo-400 tracking-wider block uppercase">คะแนนการนำเสนอและบุคลิกภาพ (AI Score)</span>
+                    <div class="my-5 flex items-baseline space-x-1.5">
+                        <span id="finalCredibilityScore" class="text-6xl font-black text-indigo-400">0</span>
+                        <span class="text-slate-500 text-lg">/ 100</span>
+                    </div>
+                </div>
+                <div class="glassmorphism p-5 rounded-2xl flex flex-col justify-between">
+                    <span class="text-xs font-bold text-sky-400 uppercase font-mono">การสบตา (Eye Contact)</span>
+                    <span id="finalEyeScore" class="text-4xl font-black text-slate-200 mt-2">0%</span>
+                </div>
+                <div class="glassmorphism p-5 rounded-2xl flex flex-col justify-between">
+                    <span class="text-xs font-bold text-emerald-400 uppercase font-mono">การจัดสรีระ (Posture)</span>
+                    <span id="finalPostureScore" class="text-4xl font-black text-slate-200 mt-2">0%</span>
+                </div>
+            </div>
+
+            <div class="text-center pt-6 border-t border-slate-800">
+                <p class="text-sm text-amber-400 font-bold mb-4">เพื่อความสมบูรณ์ของงานวิจัย กรุณาทำแบบประเมินหลังใช้</p>
+                <button onclick="goToPostTest()" class="py-3 px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 rounded-xl font-bold text-white shadow-lg transition text-lg">
+                    ทำแบบประเมินหลังการใช้งาน (Post-Assessment) <i data-lucide="arrow-right" class="inline w-5 h-5 ml-1"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 5: POST-ASSESSMENT ==================== -->
+        <section id="postTestScreen" class="hidden space-y-8 animate-fade-in max-w-4xl mx-auto">
+            <div class="text-center space-y-2">
+                <span class="text-[10px] bg-amber-500/10 text-amber-400 px-3 py-1 rounded-full font-bold uppercase tracking-widest">ขั้นตอนที่ 4 / 4</span>
+                <h2 class="text-2xl md:text-3xl font-black text-slate-100">แบบประเมินความมั่นใจหลังใช้ (Post-Assessment)</h2>
+                <p class="text-sm text-slate-400">หลังจากการเห็นคะแนนฝึกซ้อมจาก AI เสร็จสิ้น ระดับความมั่นใจของคุณเป็นอย่างไร?<br>(1 = น้อยที่สุด, 2 = น้อย, 3 = ปานกลาง, 4 = มาก, 5 = มากที่สุด)</p>
+            </div>
+
+            <div class="glassmorphism p-6 rounded-2xl border border-slate-800 space-y-8 text-sm">
+                <!-- Q1 -->
+                <div class="space-y-4">
+                    <p class="font-semibold text-slate-200">1. ระดับความมั่นใจของคุณ ในการยืนพูดพรีเซนต์งานหน้าห้องโดยไม่ตื่นเต้นจนเกินไป</p>
+                    <div class="flex justify-between gap-2 max-w-2xl mx-auto">
+                        <div class="flex-1"><input type="radio" name="post_q1" id="post_q1_1" value="1" class="hidden likert-radio"><label for="post_q1_1" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">1</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q1" id="post_q1_2" value="2" class="hidden likert-radio"><label for="post_q1_2" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">2</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q1" id="post_q1_3" value="3" class="hidden likert-radio"><label for="post_q1_3" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">3</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q1" id="post_q1_4" value="4" class="hidden likert-radio"><label for="post_q1_4" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">4</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q1" id="post_q1_5" value="5" class="hidden likert-radio"><label for="post_q1_5" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">5</label></div>
+                    </div>
+                </div>
+
+                <!-- Q2 -->
+                <div class="space-y-4">
+                    <p class="font-semibold text-slate-200">2. ระดับความมั่นใจของคุณ ในการควบคุมเสียง น้ำเสียง และจังหวะการพูดไม่ให้สั่นหรือเร็วเกินไป</p>
+                    <div class="flex justify-between gap-2 max-w-2xl mx-auto">
+                        <div class="flex-1"><input type="radio" name="post_q2" id="post_q2_1" value="1" class="hidden likert-radio"><label for="post_q2_1" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">1</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q2" id="post_q2_2" value="2" class="hidden likert-radio"><label for="post_q2_2" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">2</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q2" id="post_q2_3" value="3" class="hidden likert-radio"><label for="post_q2_3" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">3</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q2" id="post_q2_4" value="4" class="hidden likert-radio"><label for="post_q2_4" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">4</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q2" id="post_q2_5" value="5" class="hidden likert-radio"><label for="post_q2_5" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">5</label></div>
+                    </div>
+                </div>
+
+                <!-- Q3 -->
+                <div class="space-y-4">
+                    <p class="font-semibold text-slate-200">3. ระดับความมั่นใจของคุณ ในการสบตากับผู้ฟังหรือกวาดสายตามองคนดูรอบห้องอย่างเป็นธรรมชาติ</p>
+                    <div class="flex justify-between gap-2 max-w-2xl mx-auto">
+                        <div class="flex-1"><input type="radio" name="post_q3" id="post_q3_1" value="1" class="hidden likert-radio"><label for="post_q3_1" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">1</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q3" id="post_q3_2" value="2" class="hidden likert-radio"><label for="post_q3_2" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">2</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q3" id="post_q3_3" value="3" class="hidden likert-radio"><label for="post_q3_3" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">3</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q3" id="post_q3_4" value="4" class="hidden likert-radio"><label for="post_q3_4" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">4</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q3" id="post_q3_5" value="5" class="hidden likert-radio"><label for="post_q3_5" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">5</label></div>
+                    </div>
+                </div>
+
+                <!-- Q4 -->
+                <div class="space-y-4">
+                    <p class="font-semibold text-slate-200">4. ระดับความมั่นใจของคุณ ในการรับมือกับสถานการณ์เฉพาะหน้า (เช่น ลืมบท หรือมีคำถามยากๆ จากผู้ฟัง)</p>
+                    <div class="flex justify-between gap-2 max-w-2xl mx-auto">
+                        <div class="flex-1"><input type="radio" name="post_q4" id="post_q4_1" value="1" class="hidden likert-radio"><label for="post_q4_1" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">1</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q4" id="post_q4_2" value="2" class="hidden likert-radio"><label for="post_q4_2" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">2</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q4" id="post_q4_3" value="3" class="hidden likert-radio"><label for="post_q4_3" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">3</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q4" id="post_q4_4" value="4" class="hidden likert-radio"><label for="post_q4_4" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">4</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q4" id="post_q4_5" value="5" class="hidden likert-radio"><label for="post_q4_5" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">5</label></div>
+                    </div>
+                </div>
+
+                <!-- Q5 -->
+                <div class="space-y-4">
+                    <p class="font-semibold text-slate-200">5. ระดับความมั่นใจโดยรวมของคุณ ในการมองภาพลักษณ์ของตนเองว่าเป็น "คนที่พรีเซนต์งานได้อย่างมีประสิทธิภาพ"</p>
+                    <div class="flex justify-between gap-2 max-w-2xl mx-auto">
+                        <div class="flex-1"><input type="radio" name="post_q5" id="post_q5_1" value="1" class="hidden likert-radio"><label for="post_q5_1" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">1</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q5" id="post_q5_2" value="2" class="hidden likert-radio"><label for="post_q5_2" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">2</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q5" id="post_q5_3" value="3" class="hidden likert-radio"><label for="post_q5_3" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">3</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q5" id="post_q5_4" value="4" class="hidden likert-radio"><label for="post_q5_4" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">4</label></div>
+                        <div class="flex-1"><input type="radio" name="post_q5" id="post_q5_5" value="5" class="hidden likert-radio"><label for="post_q5_5" class="post-label block w-full py-3 text-center bg-slate-900 border border-slate-700 rounded-xl cursor-pointer text-slate-400 hover:border-amber-400 font-bold transition">5</label></div>
+                    </div>
+                </div>
+
+                <!-- Additional Feedback Input -->
+                <div class="space-y-3 pt-6 border-t border-slate-800">
+                    <p class="font-bold text-amber-300 text-base">ข้อเสนอแนะเพิ่มเติม / ความคิดเห็นหลังใช้งาน</p>
+                    <p class="text-xs text-slate-400">ท่านมีข้อเสนอแนะ ข้อคิดเห็น หรือสิ่งที่ต้องการให้ระบบ AI ปรับปรุงเพิ่มเติมอย่างไรบ้าง?</p>
+                    <textarea id="userFeedback" rows="3" placeholder="พิมพ์ข้อเสนอแนะเพิ่มเติมของคุณที่นี่..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-amber-500 text-sm"></textarea>
+                </div>
+
+                <button onclick="submitPostTest()" class="w-full py-4 bg-amber-600 hover:bg-amber-500 rounded-xl font-bold text-white shadow-lg shadow-amber-600/20 transition mt-6 text-lg">
+                    ประมวลผลข้อสรุปทั้งหมด
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 6: FINAL AI FEEDBACK ==================== -->
+        <section id="finalFeedbackScreen" class="hidden space-y-8 animate-fade-in max-w-4xl mx-auto">
+            <div class="text-center space-y-2">
+                <h2 class="text-3xl font-black text-slate-100">ผลการวิเคราะห์พัฒนาการส่วนบุคคล</h2>
+                <p class="text-sm text-slate-400">เปรียบเทียบคะแนนความมั่นใจ (Pre/Post) และผลการประเมินจากระบบ</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Score Comparison -->
+                <div class="glassmorphism p-6 rounded-2xl border border-slate-800 space-y-4">
+                    <h3 class="font-bold text-indigo-400 text-lg border-b border-slate-800 pb-2">การเปลี่ยนแปลงระดับความมั่นใจของคุณ</h3>
+                    <div class="flex justify-around items-center pt-2">
+                        <div class="text-center">
+                            <p class="text-xs text-slate-500 mb-1">ก่อนใช้แอป</p>
+                            <span id="comparePreScore" class="text-5xl font-black text-slate-300">0</span>
+                            <span class="text-sm text-slate-500">/ 25</span>
+                        </div>
+                        <i data-lucide="arrow-right" class="w-8 h-8 text-slate-600"></i>
+                        <div class="text-center">
+                            <p class="text-xs text-slate-500 mb-1">หลังใช้แอป</p>
+                            <span id="comparePostScore" class="text-5xl font-black text-emerald-400">0</span>
+                            <span class="text-sm text-slate-500">/ 25</span>
+                        </div>
+                    </div>
+                    <p id="compareStatusText" class="text-center text-base font-bold mt-4"></p>
+                </div>
+
+                <!-- AI Advice Generation -->
+                <div class="glassmorphism p-6 rounded-2xl border border-indigo-500/30 space-y-4 relative overflow-hidden glow-indigo">
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
+                    <div class="flex items-center space-x-2 border-b border-slate-800 pb-2">
+                        <i data-lucide="sparkles" class="w-5 h-5 text-indigo-400"></i>
+                        <h3 class="font-bold text-indigo-400 text-lg">บทสรุปและคำแนะนำ</h3>
+                    </div>
+                    <p id="generatedAIFeedback" class="text-sm text-slate-300 leading-relaxed indent-4">
+                        <!-- Auto generated text goes here -->
+                    </p>
+                </div>
+            </div>
+
+            <!-- Display User Additional Feedback if submitted -->
+            <div id="userFeedbackCard" class="hidden glassmorphism p-6 rounded-2xl border border-amber-500/30 space-y-2">
+                <div class="flex items-center space-x-2 border-b border-slate-800 pb-2">
+                    <i data-lucide="message-square" class="w-5 h-5 text-amber-400"></i>
+                    <h3 class="font-bold text-amber-400 text-base">ข้อเสนอแนะเพิ่มเติมของคุณ</h3>
+                </div>
+                <p id="displayUserFeedbackText" class="text-sm text-slate-300 italic pt-1"></p>
+            </div>
+
+            <div class="text-center pt-8">
+                <button onclick="resetToLogin()" class="px-8 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-base font-bold text-slate-300 transition">
+                    กลับสู่หน้าแรกเพื่อเริ่มใหม่
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-900/80 glassmorphism py-6 text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-center md:text-left space-y-1">
+                <p class="font-bold text-slate-400 text-sm">© 2026 PersonaScan AI.</p>
+                <p class="text-[11px]">รายวิชา INNOVATION OF PSYCHOLOGY</p>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-slate-400 font-medium">
+                <span>น.ส. พลอยชยา เค้าอุทัย</span><span class="text-slate-800">|</span>
+                <span>น.ส. เนตรธิดา นาวาเดช</span><span class="text-slate-800">|</span>
+                <span>น.ส. ชลธิชา คานทอง</span><span class="text-slate-800">|</span>
+                <span>น.ส. สุชัญญา เอี่ยมศิริ</span><span class="text-slate-800">|</span>
+                <span>น.ส. เยาวรินทร์ เรืองยศ</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- FIREBASE & LOGIC SCRIPT MODULE -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase Environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'personascan-default';
+        let db, auth, currentUser, colRef;
+        let isCloudReady = false;
+
+        // Try initializing Firebase (Wraps in try-catch to prevent app crash if environment lacks config)
+        try {
+            const firebaseConfig = typeof __firebase_config !== 'undefined' 
+                ? JSON.parse(__firebase_config) 
+                : null;
+            
+            if (firebaseConfig) {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                colRef = collection(db, 'artifacts', appId, 'public', 'data', 'assessments');
+
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                };
+                initAuth();
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        isCloudReady = true;
+                    }
+                });
+            }
+        } catch(e) {
+            console.warn("Cloud connection limited in this environment. Falling back to local device storage.", e);
+        }
+
+        // Current User Session Data
+        window.userSession = {
+            id: Date.now(),
+            timestamp: "",
+            nickname: "",
+            expectation: "",
+            preScores: [],
+            postScores: [],
+            feedback: "",
+            aiScores: { gaze: 0, speech: 0, posture: 0, overall: 0 }
+        };
+
+        const screens = {
+            login: document.getElementById('loginScreen'),
+            preTest: document.getElementById('preTestScreen'),
+            welcome: document.getElementById('welcomeScreen'),
+            simulation: document.getElementById('simulationScreen'),
+            report: document.getElementById('reportScreen'),
+            postTest: document.getElementById('postTestScreen'),
+            finalFeedback: document.getElementById('finalFeedbackScreen')
+        };
+
+        window.onload = function() {
+            lucide.createIcons();
+            try {
+                if (typeof Pose !== 'undefined') {
+                    window.poseDetector = new Pose({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}` });
+                    window.poseDetector.setOptions({ modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+                    window.poseDetector.onResults(window.onPoseDetectorResults);
+                }
+            } catch(e) {}
+        };
+
+        function hideAllScreens() {
+            for (let key in screens) screens[key].classList.add('hidden');
+        }
+
+        window.submitLogin = function() {
+            const name = document.getElementById('userNickname').value.trim();
+            if(!name) { alert("กรุณากรอกชื่อเล่นก่อนเข้าใช้งานครับ"); return; }
+            window.userSession.nickname = name;
+            hideAllScreens();
+            screens.preTest.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // ลิงก์ระบบรับข้อมูลปลายทางหลักของ Google Forms
+        window.correctFormURL = "https://docs.google.com/forms/d/e/1FAIpQLScg47BKmURcnnzXeab3b5yz3M4Y4fWtY_TmJ1OvrNPQaLDm5g/formResponse";
+
+        // 🚀 ส่งชุดที่ 1: ชื่อ (229673510), Pre-Test (117007090), สิ่งที่คาดหวัง (1971100165)
+        window.sendFirstBatchAndNext = function() {
+            const playerMainName = window.userSession.nickname || (document.getElementById('userNickname') ? document.getElementById('userNickname').value.trim() : "");
+            const playerExpectation = window.userSession.expectation || (document.getElementById('userExpectation') ? document.getElementById('userExpectation').value.trim() : "");
+            const preTestValue = window.userSession.preScores.length > 0 ? window.userSession.preScores.reduce((a,b)=>a+b,0) : 3;
+
+            const formData = new FormData();
+            formData.append("entry.229673510", playerMainName);       // ชื่อ
+            formData.append("entry.117007090", preTestValue);         // พรีเทส
+            formData.append("entry.1971100165", playerExpectation);   // สิ่งที่คาดหวัง
+
+            fetch(window.correctFormURL, {
+                method: "POST",
+                mode: "no-cors",
+                body: formData
+            })
+            .then(() => {
+                console.log("ส่งข้อมูล Pre-Test สำเร็จ (Batch 1)");
+            })
+            .catch((error) => {
+                console.error("เกิดข้อผิดพลาดด้านเครือข่ายในการส่งข้อมูล Batch 1", error);
+            });
+        };
+
+        // 🚀 ส่งชุดที่ 2: ชื่อ, Pre-Test, สิ่งที่คาดหวัง, คะแนน AI (1339651299), โพสเทส (1659395988), ข้อชี้แนะ (1579802437)
+        window.sendSecondBatchAndFinish = function() {
+            const playerMainName = window.userSession.nickname || (document.getElementById('userNickname') ? document.getElementById('userNickname').value.trim() : "");
+            const playerExpectation = window.userSession.expectation || (document.getElementById('userExpectation') ? document.getElementById('userExpectation').value.trim() : "");
+            const preTestValue = window.userSession.preScores.length > 0 ? window.userSession.preScores.reduce((a,b)=>a+b,0) : 3;
+            
+            const postTestValue = window.userSession.postScores.length > 0 ? window.userSession.postScores.reduce((a,b)=>a+b,0) : 4;
+            const playerFeedback = window.userSession.feedback || (document.getElementById('userFeedback') ? document.getElementById('userFeedback').value.trim() : "");
+            const aiScore = window.userSession.aiScores.overall || 85;
+
+            const formData = new FormData();
+            formData.append("entry.229673510", playerMainName);       // ชื่อ
+            formData.append("entry.117007090", preTestValue);         // พรีเทส
+            formData.append("entry.1971100165", playerExpectation);   // สิ่งที่คาดหวัง
+            formData.append("entry.1339651299", aiScore);             // คะแนน AI
+            formData.append("entry.1659395988", postTestValue);        // โพสเทส
+            formData.append("entry.1579802437", playerFeedback);      // ข้อชี้แนะ
+
+            fetch(window.correctFormURL, {
+                method: "POST",
+                mode: "no-cors",
+                body: formData
+            })
+            .then(() => {
+                console.log("ส่งข้อมูล Post-Test ครบถ้วนสำเร็จ (Batch 2)");
+            })
+            .catch((error) => {
+                console.error("เกิดข้อผิดพลาดด้านเครือข่ายในการส่งข้อมูล Batch 2", error);
+            });
+        };
+
+        window.submitPreTest = function() {
+            let scores = [];
+            for(let i=1; i<=5; i++) {
+                const checked = document.querySelector(`input[name="pre_q${i}"]:checked`);
+                if(!checked) { alert(`กรุณาตอบแบบประเมินให้ครบในข้อที่ ${i} ครับ`); return; }
+                scores.push(parseInt(checked.value));
+            }
+            window.userSession.preScores = scores;
+            window.userSession.expectation = document.getElementById('userExpectation').value.trim();
+            
+            // Trigger Batch 1 Form Submission
+            window.sendFirstBatchAndNext();
+
+            hideAllScreens();
+            screens.welcome.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.goToPostTest = function() {
+            hideAllScreens();
+            screens.postTest.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.submitPostTest = async function() {
+            let scores = [];
+            for(let i=1; i<=5; i++) {
+                const checked = document.querySelector(`input[name="post_q${i}"]:checked`);
+                if(!checked) { alert(`กรุณาตอบแบบประเมินให้ครบในข้อที่ ${i} ครับ`); return; }
+                scores.push(parseInt(checked.value));
+            }
+            window.userSession.postScores = scores;
+            window.userSession.feedback = document.getElementById('userFeedback').value.trim();
+            window.userSession.timestamp = new Date().toLocaleString('th-TH');
+
+            // Trigger Batch 2 Form Submission
+            window.sendSecondBatchAndFinish();
+
+            await generateFinalAIFeedback();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        async function generateFinalAIFeedback() {
+            const preTotal = window.userSession.preScores.reduce((a,b)=>a+b,0);
+            const postTotal = window.userSession.postScores.reduce((a,b)=>a+b,0);
+            const aiScore = window.userSession.aiScores.overall;
+            
+            document.getElementById('comparePreScore').innerText = preTotal;
+            document.getElementById('comparePostScore').innerText = postTotal;
+
+            let statusEl = document.getElementById('compareStatusText');
+            let aiTextEl = document.getElementById('generatedAIFeedback');
+            
+            // ประมวลผลความต่างของคะแนน (Post - Pre)
+            const scoreDifference = postTotal - preTotal;
+            
+            let statusTitle = "";
+            let statusClass = "";
+            let aiMsg = `สวัสดีคุณ ${window.userSession.nickname} จากการประมวลผลคะแนนแบบประเมินตนเองเทียบกับผลลัพธ์จาก AI (คะแนน AI: ${aiScore}/100) เรามีข้อสรุปดังนี้ครับ\n\n`;
+
+            // เงื่อนไขที่ 1: วิเคราะห์พัฒนาการความมั่นใจร่วมกับคะแนน AI
+            if (scoreDifference > 0) {
+                // ความมั่นใจเพิ่มขึ้น
+                if (aiScore >= 70) {
+                    statusTitle = "⭐ พัฒนาการดีเยี่ยม และ AI ยืนยันผลลัพธ์! ⭐";
+                    statusClass = "text-emerald-400";
+                    aiMsg += `คุณมีความมั่นใจเพิ่มขึ้นอย่างชัดเจน (+${scoreDifference} คะแนน) และสอดคล้องกับผลประเมินจาก AI ที่ให้คะแนนสูงถึง ${aiScore} สะท้อนว่าคุณไม่เพียงแค่รู้สึกมั่นใจ แต่ยังแสดงออกทางภาษากายได้อย่างมีประสิทธิภาพจริงๆ ครับ `;
+                } else {
+                    statusTitle = "⭐ ความมั่นใจเพิ่มขึ้น แต่ยังมีจุดที่พัฒนาได้อีก";
+                    statusClass = "text-emerald-400";
+                    aiMsg += `เป็นเรื่องน่ายินดีที่คุณมีความมั่นใจในการพรีเซนต์เพิ่มขึ้น (+${scoreDifference} คะแนน) แต่อย่างไรก็ตาม ระบบ AI ตรวจพบว่ายังมีบางจุดในภาษากายที่ควรปรับปรุง (คะแนน AI: ${aiScore}) เพื่อให้ภาพลักษณ์ของคุณดูน่าเชื่อถืออย่างสมบูรณ์แบบครับ `;
+                }
+            } else if (scoreDifference === 0) {
+                // ความมั่นใจคงที่
+                statusTitle = "รักษาระดับความมั่นใจได้คงที่";
+                statusClass = "text-sky-400";
+                if (aiScore >= 70) {
+                    aiMsg += `ระดับความมั่นใจของคุณคงที่ แต่ระบบ AI พบว่าจริงๆ แล้วคุณทำได้ดีมาก (คะแนน AI: ${aiScore}) คุณอาจประเมินตัวเองต่ำกว่าความเป็นจริง ลองเชื่อมั่นในตัวเองให้มากขึ้นเวลาออกไปพรีเซนต์นะครับ! `;
+                } else {
+                    aiMsg += `ระดับความมั่นใจและผลการแสดงออกทางภาษากายของคุณค่อนข้างคงที่ ถือว่ามีอารมณ์ที่เสถียร แนะนำให้ลองใช้เวลาฝึกซ้อมกับแอปเพิ่มเติมเพื่อยกระดับทักษะการสบตาและการใช้เสียงให้ดียิ่งขึ้นครับ `;
+                }
+            } else {
+                // ความมั่นใจลดลง
+                if (aiScore >= 70) {
+                    statusTitle = "อย่าเพิ่งท้อ! AI พบว่าคุณทำได้ดีกว่าที่คิด";
+                    statusClass = "text-amber-400";
+                    aiMsg += `แม้ความมั่นใจของคุณจะลดลงหลังการฝึกซ้อม (${scoreDifference} คะแนน) แต่เชื่อไหมว่าระบบ AI ประเมินประสิทธิภาพการแสดงออกของคุณอยู่ในเกณฑ์ดีมาก (${aiScore}/100) อาการประหม่าเป็นเรื่องปกติ แต่ภาษากายของคุณบอกว่าคุณเอาอยู่ครับ! `;
+                } else {
+                    statusTitle = "ก้าวแรกของการเรียนรู้และพัฒนา (Self-Awareness)";
+                    statusClass = "text-amber-400";
+                    aiMsg += `คะแนนความมั่นใจที่ลดลงสะท้อนให้เห็นถึงการตระหนักรู้ในจุดอ่อนของตนเอง (Self-Awareness) ซึ่งตรงกับผลประเมินของ AI ที่ยังอยู่ในระดับเริ่มต้น การรับรู้จุดอ่อนคือจุดเริ่มต้นที่ดีที่สุดของการพัฒนาครับ อย่าเพิ่งยอมแพ้นะครับ `;
+                }
+            }
+
+            statusEl.innerText = statusTitle;
+            statusEl.className = `text-center text-lg font-bold mt-4 ${statusClass}`;
+
+            // เงื่อนไขที่ 2: เจาะจงรายละเอียดจาก AI
+            aiMsg += "\n\n💡 คำแนะนำเพิ่มเติมเฉพาะจุด: ";
+            if (window.userSession.aiScores.gaze > 75) aiMsg += "จุดเด่นของคุณคือการสบตา (Eye Contact) ที่ทำได้ดีเยี่ยม ช่วยสร้างความน่าเชื่อถือได้ดีมาก ";
+            else aiMsg += "ในการซ้อมครั้งหน้า ลองพยายามมองตรงสบตากล้องให้มากขึ้น เพื่อสร้างความน่าเชื่อถือและดึงดูดผู้ฟัง ";
+
+            if (window.userSession.aiScores.posture > 75) aiMsg += "และการจัดระเบียบสรีระร่างกายที่นิ่งสง่า ดูเป็นมืออาชีพ ";
+            else aiMsg += "รวมถึงระวังการกอดอก ห่อไหล่ หรือขยับตัวมากเกินไป ลองจัดระเบียบร่างกายให้ผ่อนคลายแต่ดูสง่าขึ้นนะครับ ";
+
+            aiTextEl.innerText = aiMsg;
+
+            // Display user feedback card if filled
+            const feedbackCard = document.getElementById('userFeedbackCard');
+            const feedbackTextEl = document.getElementById('displayUserFeedbackText');
+            if (window.userSession.feedback) {
+                feedbackTextEl.innerText = `"${window.userSession.feedback}"`;
+                feedbackCard.classList.remove('hidden');
+            } else {
+                feedbackCard.classList.add('hidden');
+            }
+
+            // SAVE DATA
+            if (isCloudReady && currentUser && colRef) {
+                try {
+                    await addDoc(colRef, {
+                        ...window.userSession,
+                        createdAt: Date.now()
+                    });
+                } catch(e) {
+                    console.error("Cloud Error, saving locally.", e);
+                    saveToLocalStorage();
+                }
+            } else {
+                saveToLocalStorage();
+            }
+
+            hideAllScreens();
+            screens.finalFeedback.classList.remove('hidden');
+        }
+        
+        function saveToLocalStorage() {
+            let dbLocal = JSON.parse(localStorage.getItem('personascan_local_v1') || "[]");
+            dbLocal.push(window.userSession);
+            localStorage.setItem('personascan_local_v1', JSON.stringify(dbLocal));
+        }
+
+        window.resetToLogin = function() {
+            window.userSession = { id: Date.now(), timestamp: "", nickname: "", expectation: "", preScores: [], postScores: [], feedback: "", aiScores: { gaze:0, speech:0, posture:0, overall:0 }};
+            document.getElementById('userNickname').value = "";
+            document.getElementById('userExpectation').value = "";
+            document.getElementById('userFeedback').value = "";
+            document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+            
+            hideAllScreens();
+            screens.login.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // ==================== SIMULATION AI LOGIC ====================
+        let isHardwareOn = false;
+        let hardwareStream = null;
+        let cameraObj = null;
+        let dataAccumulators = { eyeContact: [], stability: [], vocalQuality: [], totalFrames: 0 };
+        let animationFrameId = null;
+
+        window.startAppSimulation = function(mode) {
+            hideAllScreens();
+            screens.simulation.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if(!isHardwareOn) toggleInputs();
+        };
+
+        window.toggleInputs = async function() {
+            if (isHardwareOn) {
+                stopInputs();
+            } else {
+                try {
+                    hardwareStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    const videoElement = document.getElementById('videoElement');
+                    videoElement.srcObject = hardwareStream;
+                    isHardwareOn = true;
+                    document.getElementById('hardwarePlaceholder').classList.add('hidden');
+                    document.getElementById('deviceText').innerText = "ปิดกล้อง";
+                    document.getElementById('statusIndicator').className = "w-3 h-3 bg-emerald-500 rounded-full animate-pulse";
+
+                    videoElement.onloadedmetadata = () => {
+                        const canvas = document.getElementById('canvasOverlay');
+                        canvas.width = videoElement.videoWidth;
+                        canvas.height = videoElement.videoHeight;
+                        dataAccumulators = { eyeContact: [], stability: [], vocalQuality: [], totalFrames: 0 };
+                        if (window.poseDetector) {
+                            cameraObj = new Camera(videoElement, { onFrame: async () => { if(isHardwareOn) await window.poseDetector.send({ image: videoElement }); }, width: 640, height: 480 });
+                            cameraObj.start();
+                        } else {
+                            runFallbackPixelLoop();
+                        }
+                    };
+                } catch(e) { alert("ไม่สามารถเปิดสิทธิ์เข้าถึงกล้องได้ครับ"); }
+            }
+        };
+
+        let landmarkHistory = [];
+
+        function updateRealtimeAlerts(landmarks, gazeScore, postureScore) {
+            const overlayEl = document.getElementById('realtimeTipOverlay');
+            const boxEl = document.getElementById('realtimeTipBox');
+            const textEl = document.getElementById('realtimeTipText');
+            const pingEl = document.getElementById('realtimeTipPing');
+            const dotEl = document.getElementById('realtimeTipDot');
+            const sideAdviceEl = document.getElementById('sideRealtimeAdvice');
+            const sideBgEl = document.getElementById('sideAdviceIconBg');
+
+            if (!overlayEl || !boxEl || !textEl) return;
+
+            let alertMsg = "";
+            let alertType = "good"; // "warning" | "caution" | "good"
+
+            if (landmarks && landmarks[0]) {
+                const nose = landmarks[0];
+                const leftShoulder = landmarks[11];
+                const rightShoulder = landmarks[12];
+
+                // Track nose movement history for staring intensity calculation
+                landmarkHistory.push({ x: nose.x, y: nose.y });
+                if (landmarkHistory.length > 25) landmarkHistory.shift();
+
+                let moveDist = 0;
+                for (let i = 1; i < landmarkHistory.length; i++) {
+                    moveDist += Math.hypot(landmarkHistory[i].x - landmarkHistory[i-1].x, landmarkHistory[i].y - landmarkHistory[i-1].y);
+                }
+                const avgMove = moveDist / Math.max(1, landmarkHistory.length - 1);
+
+                // Rule 1: Looking down / reading script
+                if (nose.y > 0.52 || (leftShoulder && rightShoulder && nose.y > (leftShoulder.y + rightShoulder.y)/2 - 0.07)) {
+                    alertMsg = "👀 ก้มหน้าอ่านสคริปต์อยู่หรือเปล่า? ลองเงยหน้าขึ้นและสบตากับกล้องครับ";
+                    alertType = "warning";
+                }
+                // Rule 2: Looking away / side gaze distraction
+                else if (Math.abs(nose.x - 0.5) > 0.16) {
+                    alertMsg = "👁️ สายตาวอกแวกมองออกข้าง พยายามรักษาระยะสบตากล้องตรงกลางครับ";
+                    alertType = "caution";
+                }
+                // Rule 3: Staring too intensely with no head movement
+                else if (landmarkHistory.length >= 20 && avgMove < 0.0015 && gazeScore > 85) {
+                    alertMsg = "😳 คุณกำลังจ้องกล้องนิ่งเกร็งเกินไป! กระพริบตาและผ่อนคลายสีหน้าสักนิดครับ";
+                    alertType = "caution";
+                }
+                // Rule 4: Shoulder imbalance / slouching
+                else if (leftShoulder && rightShoulder && Math.abs(leftShoulder.y - rightShoulder.y) > 0.065) {
+                    alertMsg = "📐 ไหล่ไม่เท่ากันหรือตัวเอียง ปรับสรีระแผ่นหลังให้ตรงสง่าและสมดุลครับ";
+                    alertType = "warning";
+                }
+                // Rule 5: Excellent posture & gaze
+                else if (gazeScore >= 75 && postureScore >= 80) {
+                    alertMsg = "✨ ท่าทางสมบูรณ์แบบ! คุณสบตาและจัดสรีระร่างกายได้อย่างมั่นใจและสง่ามาก";
+                    alertType = "good";
+                }
+            }
+
+            if (!alertMsg) {
+                alertMsg = "👍 รักษาระดับการสบตาและทรงตัวให้ผ่อนคลายอย่างเป็นธรรมชาติ";
+                alertType = "good";
+            }
+
+            textEl.innerText = alertMsg;
+            if(sideAdviceEl) sideAdviceEl.innerText = alertMsg;
+
+            overlayEl.classList.remove('opacity-0', '-translate-y-2');
+            overlayEl.classList.add('opacity-100', 'translate-y-0');
+
+            if (alertType === "warning") {
+                boxEl.className = "bg-red-950/90 backdrop-blur-md border border-red-500/70 text-red-300 text-xs md:text-sm font-bold px-4 py-2 rounded-full shadow-2xl flex items-center space-x-2.5 animate-pulse";
+                pingEl.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75";
+                dotEl.className = "relative inline-flex rounded-full h-3 w-3 bg-red-500";
+                if(sideBgEl) sideBgEl.className = "p-2 bg-red-500/20 text-red-400 rounded-lg shrink-0 mt-0.5";
+            } else if (alertType === "caution") {
+                boxEl.className = "bg-amber-950/90 backdrop-blur-md border border-amber-500/70 text-amber-300 text-xs md:text-sm font-bold px-4 py-2 rounded-full shadow-2xl flex items-center space-x-2.5";
+                pingEl.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75";
+                dotEl.className = "relative inline-flex rounded-full h-3 w-3 bg-amber-500";
+                if(sideBgEl) sideBgEl.className = "p-2 bg-amber-500/20 text-amber-400 rounded-lg shrink-0 mt-0.5";
+            } else {
+                boxEl.className = "bg-emerald-950/90 backdrop-blur-md border border-emerald-500/70 text-emerald-300 text-xs md:text-sm font-bold px-4 py-2 rounded-full shadow-2xl flex items-center space-x-2.5";
+                pingEl.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+                dotEl.className = "relative inline-flex rounded-full h-3 w-3 bg-emerald-500";
+                if(sideBgEl) sideBgEl.className = "p-2 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0 mt-0.5";
+            }
+        }
+
+        function stopInputs() {
+            if (cameraObj) { try{cameraObj.stop()}catch(e){} }
+            if (hardwareStream) { hardwareStream.getTracks().forEach(t => t.stop()); }
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            isHardwareOn = false;
+            landmarkHistory = [];
+            const overlayEl = document.getElementById('realtimeTipOverlay');
+            if (overlayEl) overlayEl.classList.add('opacity-0', '-translate-y-2');
+            document.getElementById('hardwarePlaceholder').classList.remove('hidden');
+            document.getElementById('deviceText').innerText = "เปิดกล้อง";
+            document.getElementById('statusIndicator').className = "w-3 h-3 bg-red-500 rounded-full";
+            document.getElementById('canvasOverlay').getContext('2d').clearRect(0,0,640,480);
+        }
+
+        window.onPoseDetectorResults = function(results) {
+            if (!isHardwareOn || !results.poseLandmarks) return;
+            const landmarks = results.poseLandmarks;
+            const w = document.getElementById('canvasOverlay').width;
+            const h = document.getElementById('canvasOverlay').height;
+            const ctx = document.getElementById('canvasOverlay').getContext('2d');
+            ctx.clearRect(0,0,w,h);
+
+            let gazeScore = 85; let postureScore = 90;
+            
+            if(landmarks[0]) {
+                ctx.beginPath(); ctx.arc(landmarks[0].x*w, landmarks[0].y*h, 12, 0, 2*Math.PI); 
+                ctx.fillStyle="rgba(236, 72, 153, 0.8)"; ctx.fill();
+                gazeScore = Math.min(100, Math.max(0, 100 - Math.abs(landmarks[0].x - 0.5)*100));
+            }
+            if(landmarks[11] && landmarks[12]) {
+                ctx.beginPath(); ctx.moveTo(landmarks[11].x*w, landmarks[11].y*h); ctx.lineTo(landmarks[12].x*w, landmarks[12].y*h);
+                ctx.strokeStyle="rgba(99, 102, 241, 0.8)"; ctx.lineWidth=5; ctx.stroke();
+                postureScore = Math.min(100, Math.max(0, 100 - Math.abs(landmarks[11].y - landmarks[12].y)*180));
+            }
+
+            const time = Date.now()*0.001;
+            const simulatedSpeech = Math.round(75 + Math.sin(time)*15);
+
+            updateRealtimeAlerts(landmarks, gazeScore, postureScore);
+            recordMultimodalAverages(gazeScore, postureScore, simulatedSpeech);
+        };
+
+        function runFallbackPixelLoop() {
+            if(!isHardwareOn) return;
+            const time = Date.now()*0.001;
+            const gaze = 80+Math.sin(time)*10;
+            const posture = 85+Math.cos(time)*5;
+            const speech = 75+Math.sin(time*2)*10;
+            updateRealtimeAlerts([{ x: 0.5 + Math.sin(time)*0.05, y: 0.35 + Math.cos(time)*0.03 }], gaze, posture);
+            recordMultimodalAverages(gaze, posture, speech);
+            animationFrameId = requestAnimationFrame(runFallbackPixelLoop);
+        }
+
+        function recordMultimodalAverages(gaze, posture, speech) {
+            dataAccumulators.eyeContact.push(gaze);
+            dataAccumulators.stability.push(posture);
+            dataAccumulators.vocalQuality.push(speech);
+            dataAccumulators.totalFrames++;
+
+            const overall = Math.round((gaze*0.4) + (posture*0.4) + (speech*0.2));
+            document.getElementById('currentConfidencePercent').innerText = `${overall}%`;
+            document.getElementById('currentConfidenceBar').style.width = `${overall}%`;
+            
+            document.getElementById('metricGazeVal').innerText = `${Math.round(gaze)}%`;
+            document.getElementById('metricGazeBar').style.width = `${gaze}%`;
+            document.getElementById('metricPostureVal').innerText = `${Math.round(posture)}%`;
+            document.getElementById('metricPostureBar').style.width = `${posture}%`;
+            document.getElementById('metricSpeechVal').innerText = `${Math.round(speech)}%`;
+            document.getElementById('metricSpeechBar').style.width = `${speech}%`;
+        }
+
+        window.evaluateSimulatorSession = function() {
+            if(dataAccumulators.totalFrames === 0) { alert("กรุณาเปิดกล้องและทดลองฝึกซ้อมก่อนครับ"); return; }
+            const avg = arr => Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) || 0;
+            const aGaze = avg(dataAccumulators.eyeContact);
+            const aPosture = avg(dataAccumulators.stability);
+            const aSpeech = avg(dataAccumulators.vocalQuality);
+            const overall = Math.round((aGaze*0.4)+(aPosture*0.4)+(aSpeech*0.2));
+
+            window.userSession.aiScores = { gaze: aGaze, speech: aSpeech, posture: aPosture, overall: overall };
+
+            document.getElementById('finalCredibilityScore').innerText = overall;
+            document.getElementById('finalEyeScore').innerText = `${aGaze}%`;
+            document.getElementById('finalPostureScore').innerText = `${aPosture}%`;
+
+            stopInputs();
+            hideAllScreens();
+            screens.report.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+    </script>
+</body>
+</html>
