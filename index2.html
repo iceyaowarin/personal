@@ -1,0 +1,31 @@
+            dataAccumulators.totalFrames++;
+            const overall = Math.round((gaze*0.4) + (posture*0.4) + (speech*0.2));
+            document.getElementById('currentConfidencePercent').innerText = `${overall}%`;
+            document.getElementById('currentConfidenceBar').style.width = `${overall}%`;
+            
+            document.getElementById('metricGazeVal').innerText = `${Math.round(gaze)}%`;
+            document.getElementById('metricGazeBar').style.width = `${gaze}%`;
+            document.getElementById('metricPostureVal').innerText = `${Math.round(posture)}%`;
+            document.getElementById('metricPostureBar').style.width = `${posture}%`;
+            document.getElementById('metricSpeechVal').innerText = `${Math.round(speech)}%`;
+            document.getElementById('metricSpeechBar').style.width = `${speech}%`;
+        }
+        window.evaluateSimulatorSession = function() {
+            if(dataAccumulators.totalFrames === 0) { alert("กรุณาเปิดกล้องและทดลองฝึกซ้อมก่อนครับ"); return; }
+            const avg = arr => Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) || 0;
+            const aGaze = avg(dataAccumulators.eyeContact);
+            const aPosture = avg(dataAccumulators.stability);
+            const aSpeech = avg(dataAccumulators.vocalQuality);
+            const overall = Math.round((aGaze*0.4)+(aPosture*0.4)+(aSpeech*0.2));
+            window.userSession.aiScores = { gaze: aGaze, speech: aSpeech, posture: aPosture, overall: overall };
+            document.getElementById('finalCredibilityScore').innerText = overall;
+            document.getElementById('finalEyeScore').innerText = `${aGaze}%`;
+            document.getElementById('finalPostureScore').innerText = `${aPosture}%`;
+            stopInputs();
+            hideAllScreens();
+            screens.report.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+    </script>
+</body>
+</html>
